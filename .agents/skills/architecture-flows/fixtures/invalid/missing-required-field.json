@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "0.1.0",
+  "metadata": {
+    "repository": "scryfall-mcp",
+    "generationMode": "codex-session",
+    "privacy": "local-only"
+  },
+  "evidence": [],
+  "nodes": [],
+  "edges": [],
+  "flows": []
+}

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "0.1.0",
+  "unexpectedRootProperty": true,
+  "metadata": {
+    "repository": "scryfall-mcp",
+    "branch": "main",
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "generatedAt": "2026-05-14T12:00:00.000Z",
+    "generationMode": "prompt-only",
+    "privacy": "public"
+  },
+  "evidence": [
+    {
+      "id": "ev:src/server.ts#startServer",
+      "kind": "symbol",
+      "path": "src/server.ts",
+      "provenance": "typescript-ast",
+      "reason": "Defines the MCP server startup entrypoint."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node:server",
+      "kind": "module",
+      "label": "MCP server",
+      "evidence": ["ev:src/server.ts#startServer"],
+      "confidence": {
+        "overall": "high"
+      }
+    }
+  ],
+  "edges": [],
+  "flows": [
+    {
+      "id": "flow:start",
+      "name": "Server startup",
+      "summary": "Starts the MCP server.",
+      "trigger": "process start",
+      "steps": [
+        {
+          "id": "step:start",
+          "order": 1,
+          "node": "node:server",
+          "description": "Start the server.",
+          "evidence": ["ev:src/server.ts#startServer"],
+          "confidence": {
+            "overall": "high"
+          }
+        }
+      ]
+    }
+  ]
+}

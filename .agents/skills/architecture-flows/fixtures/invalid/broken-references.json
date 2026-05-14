@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "0.1.0",
+  "metadata": {
+    "repository": "scryfall-mcp",
+    "branch": "main",
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "generatedAt": "2026-05-14T12:00:00.000Z",
+    "generationMode": "codex-session",
+    "privacy": "local-only"
+  },
+  "evidence": [
+    {
+      "id": "ev:src/server.ts#startServer",
+      "kind": "symbol",
+      "path": "src/server.ts",
+      "provenance": "typescript-ast",
+      "reason": "Defines the MCP server startup entrypoint."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node:server",
+      "kind": "module",
+      "label": "MCP server",
+      "evidence": ["ev:missing"],
+      "confidence": {
+        "overall": "high"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:missing-target",
+      "kind": "calls",
+      "from": "node:server",
+      "to": "node:missing",
+      "evidence": ["ev:src/server.ts#startServer"],
+      "confidence": {
+        "overall": "medium"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "id": "flow:broken",
+      "name": "Broken flow",
+      "summary": "References a missing node.",
+      "trigger": "test",
+      "entry": "node:missing",
+      "steps": [
+        {
+          "id": "step:broken",
+          "order": 1,
+          "node": "node:missing",
+          "description": "This should fail.",
+          "evidence": ["ev:src/server.ts#startServer"],
+          "confidence": {
+            "overall": "medium"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "architecture-flow-skill",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

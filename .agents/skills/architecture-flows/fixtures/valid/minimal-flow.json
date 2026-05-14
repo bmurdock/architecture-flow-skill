@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "0.1.0",
+  "metadata": {
+    "repository": "scryfall-mcp",
+    "branch": "main",
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "generatedAt": "2026-05-14T12:00:00.000Z",
+    "generationMode": "codex-session",
+    "privacy": "local-only"
+  },
+  "evidence": [
+    {
+      "id": "ev:src/server.ts#startServer",
+      "kind": "symbol",
+      "path": "src/server.ts",
+      "symbol": "startServer",
+      "language": "typescript",
+      "provenance": "typescript-ast",
+      "reason": "Defines the MCP server startup entrypoint."
+    },
+    {
+      "id": "ev:src/tools/card-search.ts#searchCards",
+      "kind": "symbol",
+      "path": "src/tools/card-search.ts",
+      "symbol": "searchCards",
+      "language": "typescript",
+      "provenance": "typescript-ast",
+      "reason": "Defines the card search tool handler."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node:server",
+      "kind": "module",
+      "label": "MCP server",
+      "path": "src/server.ts",
+      "evidence": ["ev:src/server.ts#startServer"],
+      "confidence": {
+        "overall": "high",
+        "existence": "high",
+        "semantics": "medium"
+      }
+    },
+    {
+      "id": "node:card-search",
+      "kind": "function",
+      "label": "searchCards",
+      "path": "src/tools/card-search.ts",
+      "symbol": "searchCards",
+      "evidence": ["ev:src/tools/card-search.ts#searchCards"],
+      "confidence": {
+        "overall": "high",
+        "existence": "high",
+        "semantics": "high"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:server-to-card-search",
+      "kind": "calls",
+      "from": "node:server",
+      "to": "node:card-search",
+      "evidence": ["ev:src/server.ts#startServer"],
+      "confidence": {
+        "overall": "medium",
+        "direction": "medium",
+        "semantics": "medium"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "id": "flow:card-search",
+      "name": "Card search request",
+      "summary": "A client invokes the card search tool through the MCP server.",
+      "trigger": "MCP tool call",
+      "entry": "node:server",
+      "exit": "node:card-search",
+      "steps": [
+        {
+          "id": "step:receive-tool-call",
+          "order": 1,
+          "node": "node:server",
+          "description": "Receive the tool call from an MCP client.",
+          "evidence": ["ev:src/server.ts#startServer"],
+          "confidence": {
+            "overall": "medium",
+            "semantics": "medium"
+          }
+        },
+        {
+          "id": "step:search-cards",
+          "order": 2,
+          "node": "node:card-search",
+          "description": "Run the card search handler.",
+          "evidence": ["ev:src/tools/card-search.ts#searchCards"],
+          "confidence": {
+            "overall": "high",
+            "semantics": "high"
+          }
+        }
+      ]
+    }
+  ],
+  "diagnostics": [
+    {
+      "id": "diag:mvp-scope",
+      "severity": "info",
+      "message": "Fixture represents a narrow MVP flow, not full repository coverage.",
+      "evidence": ["ev:src/server.ts#startServer"]
+    }
+  ]
+}
