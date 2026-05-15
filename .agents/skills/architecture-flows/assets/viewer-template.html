@@ -4,9 +4,533 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Architecture Flows</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f7f4;
+        --panel: #ffffff;
+        --text: #202124;
+        --muted: #626a73;
+        --line: #d7dadd;
+        --accent: #0f6d7a;
+        --accent-soft: #d8eef1;
+        --warn: #8a4b00;
+        --error: #a12424;
+        --radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.45;
+      }
+
+      button,
+      select {
+        font: inherit;
+      }
+
+      .app-shell {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 16px;
+        align-items: end;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+      }
+
+      h2 {
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      h3 {
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .metadata,
+      .summary,
+      .muted {
+        color: var(--muted);
+      }
+
+      .control {
+        display: grid;
+        gap: 6px;
+        min-width: 220px;
+      }
+
+      .control label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      select {
+        min-height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel);
+        color: var(--text);
+        padding: 0 10px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(300px, 1fr) minmax(360px, 1.2fr) minmax(300px, 0.9fr);
+        gap: 16px;
+        padding-top: 20px;
+      }
+
+      .column,
+      .panel {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 14px;
+      }
+
+      .list,
+      .group-items,
+      .steps {
+        display: grid;
+        gap: 8px;
+      }
+
+      .group {
+        display: grid;
+        gap: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--line);
+      }
+
+      .group:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      .item,
+      .step,
+      .diagnostic,
+      .evidence-item {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fbfbfa;
+        padding: 10px;
+      }
+
+      .item {
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .item:hover {
+        border-color: var(--accent);
+      }
+
+      .is-highlighted {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      .item-title,
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .label {
+        font-weight: 700;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel);
+        color: var(--muted);
+        padding: 2px 8px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .badge.high {
+        color: #176133;
+      }
+
+      .badge.medium {
+        color: var(--warn);
+      }
+
+      .badge.low,
+      .badge.error {
+        color: var(--error);
+      }
+
+      .path,
+      code {
+        overflow-wrap: anywhere;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 12px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      .step-number {
+        display: inline-grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #ffffff;
+        font-weight: 700;
+      }
+
+      .empty {
+        color: var(--muted);
+        font-style: italic;
+      }
+
+      @media (max-width: 1050px) {
+        .topbar,
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .control {
+          min-width: 0;
+        }
+      }
+    </style>
   </head>
   <body>
     <main id="app"></main>
     <script id="architecture-flows-data" type="application/json">__ARCHITECTURE_FLOWS_JSON__</script>
+    <script>
+      (() => {
+        const data = JSON.parse(document.getElementById('architecture-flows-data').textContent);
+        const state = {
+          selectedFlowId: data.flows?.[0]?.id ?? '',
+          groupBy: 'package',
+          selectedItemType: 'flow',
+          selectedItemId: data.flows?.[0]?.id ?? ''
+        };
+
+        const byId = (items = []) => new Map(items.map((item) => [item.id, item]));
+        const nodesById = byId(data.nodes);
+        const edgesById = byId(data.edges);
+        const evidenceById = byId(data.evidence);
+        const app = document.getElementById('app');
+
+        function text(value, fallback = 'Unknown') {
+          return value === undefined || value === null || value === '' ? fallback : String(value);
+        }
+
+        function el(tag, options = {}, children = []) {
+          const element = document.createElement(tag);
+          for (const [key, value] of Object.entries(options)) {
+            if (value === undefined || value === null || value === false) continue;
+            if (key === 'className') element.className = value;
+            else if (key === 'text') element.textContent = value;
+            else if (key === 'htmlFor') element.htmlFor = value;
+            else if (key.startsWith('on') && typeof value === 'function') element.addEventListener(key.slice(2), value);
+            else element.setAttribute(key, value);
+          }
+          for (const child of children) {
+            element.append(child);
+          }
+          return element;
+        }
+
+        function confidenceBadge(confidence) {
+          const overall = text(confidence?.overall, 'unknown');
+          return el('span', { className: `badge ${overall}`, text: `confidence: ${overall}` });
+        }
+
+        function selectedFlow() {
+          return data.flows?.find((flow) => flow.id === state.selectedFlowId) ?? data.flows?.[0];
+        }
+
+        function selectedFlowIds(flow = selectedFlow()) {
+          const nodeIds = new Set([flow?.entry, flow?.exit].filter(Boolean));
+          const edgeIds = new Set();
+          for (const step of flow?.steps ?? []) {
+            if (step.node) nodeIds.add(step.node);
+            if (step.edge) edgeIds.add(step.edge);
+          }
+          const orderedNodeIds = (flow?.steps ?? []).map((step) => step.node).filter(Boolean);
+          for (let index = 0; index < orderedNodeIds.length - 1; index += 1) {
+            for (const edge of data.edges ?? []) {
+              if (edge.from === orderedNodeIds[index] && edge.to === orderedNodeIds[index + 1]) {
+                edgeIds.add(edge.id);
+              }
+            }
+          }
+          return { nodeIds, edgeIds };
+        }
+
+        function groupValue(item) {
+          if (state.groupBy === 'layer') return text(item.layer ?? item.kind, 'Unlayered');
+          if (state.groupBy === 'domain') return text(item.domain ?? item.boundedContext ?? item.kind, 'Undomained');
+          const itemPath = item.path ?? nodesById.get(item.from)?.path ?? nodesById.get(item.to)?.path;
+          const match = itemPath?.match(/^packages\/([^/]+)/u);
+          if (match) return `packages/${match[1]}`;
+          return text(item.package ?? itemPath?.split('/')[0] ?? item.kind, 'Unpackaged');
+        }
+
+        function grouped(items) {
+          const groups = new Map();
+          for (const item of items ?? []) {
+            const key = groupValue(item);
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(item);
+          }
+          return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
+        }
+
+        function selectItem(type, id) {
+          state.selectedItemType = type;
+          state.selectedItemId = id;
+          render();
+        }
+
+        function itemButton(type, item, highlighted) {
+          const title = type === 'edge'
+            ? `${text(nodesById.get(item.from)?.label, item.from)} -> ${text(nodesById.get(item.to)?.label, item.to)}`
+            : text(item.label ?? item.name, item.id);
+          return el('button', {
+            className: `item ${highlighted ? 'is-highlighted' : ''}`,
+            type: 'button',
+            onclick: () => selectItem(type, item.id)
+          }, [
+            el('div', { className: 'item-title' }, [
+              el('span', { className: 'label', text: title }),
+              confidenceBadge(item.confidence)
+            ]),
+            el('div', { className: 'muted', text: text(item.kind ?? item.id) }),
+            el('div', { className: 'path', text: text(item.path ?? item.id) })
+          ]);
+        }
+
+        function graphPanel(type, items, highlightedIds) {
+          return el('section', { className: 'panel' }, [
+            el('h2', { text: type === 'node' ? 'Nodes' : 'Edges' }),
+            el('div', { className: 'list' }, grouped(items).map(([name, groupItems]) =>
+              el('section', { className: 'group' }, [
+                el('h3', { text: name }),
+                el('div', { className: 'group-items' }, groupItems.map((item) =>
+                  itemButton(type, item, highlightedIds.has(item.id))
+                ))
+              ])
+            ))
+          ]);
+        }
+
+        function flowSelector() {
+          const select = el('select', { id: 'flow-select' }, (data.flows ?? []).map((flow) =>
+            el('option', { value: flow.id, text: flow.name })
+          ));
+          select.value = state.selectedFlowId;
+          select.addEventListener('change', () => {
+            state.selectedFlowId = select.value;
+            state.selectedItemType = 'flow';
+            state.selectedItemId = select.value;
+            render();
+          });
+          return el('div', { className: 'control' }, [
+            el('label', { htmlFor: 'flow-select', text: 'Workflow' }),
+            select
+          ]);
+        }
+
+        function groupSelector() {
+          const select = el('select', { id: 'group-select' }, ['package', 'layer', 'domain'].map((value) =>
+            el('option', { value, text: value[0].toUpperCase() + value.slice(1) })
+          ));
+          select.value = state.groupBy;
+          select.addEventListener('change', () => {
+            state.groupBy = select.value;
+            render();
+          });
+          return el('div', { className: 'control' }, [
+            el('label', { htmlFor: 'group-select', text: 'Group by' }),
+            select
+          ]);
+        }
+
+        function stepsPanel(flow) {
+          const steps = [...(flow?.steps ?? [])].sort((a, b) => a.order - b.order);
+          return el('section', { id: 'steps-panel', className: 'panel' }, [
+            el('h2', { text: 'Steps' }),
+            el('p', { className: 'summary', text: text(flow?.summary, 'No flow selected') }),
+            el('div', { className: 'steps' }, steps.map((step) =>
+              el('article', { className: 'step' }, [
+                el('span', { className: 'step-number', text: text(step.order) }),
+                el('div', {}, [
+                  el('div', { className: 'row' }, [
+                    el('strong', { text: text(nodesById.get(step.node)?.label, step.node) }),
+                    confidenceBadge(step.confidence)
+                  ]),
+                  el('p', { text: text(step.description, '') }),
+                  el('p', { className: 'path', text: step.edge ? `edge: ${step.edge}` : `node: ${step.node}` })
+                ])
+              ])
+            ))
+          ]);
+        }
+
+        function selectedItem(flow) {
+          if (state.selectedItemType === 'node') return nodesById.get(state.selectedItemId);
+          if (state.selectedItemType === 'edge') return edgesById.get(state.selectedItemId);
+          if (state.selectedItemType === 'diagnostic') return (data.diagnostics ?? []).find((item) => item.id === state.selectedItemId);
+          return flow;
+        }
+
+        function evidenceIdsFor(item) {
+          const ids = new Set(item?.evidence ?? []);
+          if (item?.steps) {
+            for (const step of item.steps) {
+              for (const id of step.evidence ?? []) ids.add(id);
+            }
+          }
+          return [...ids];
+        }
+
+        function evidencePanel(item) {
+          const items = evidenceIdsFor(item).map((id) => evidenceById.get(id)).filter(Boolean);
+          return el('section', { id: 'evidence-panel', className: 'panel' }, [
+            el('h2', { text: 'Evidence' }),
+            items.length === 0
+              ? el('p', { className: 'empty', text: 'No evidence is attached to the current selection.' })
+              : el('div', { className: 'list' }, items.map((evidence) =>
+                el('article', { className: 'evidence-item' }, [
+                  el('div', { className: 'row' }, [
+                    el('strong', { text: evidence.id }),
+                    el('span', { className: 'badge', text: evidence.kind })
+                  ]),
+                  el('div', { className: 'path', text: evidence.path }),
+                  el('p', { text: evidence.reason }),
+                  el('p', { className: 'muted', text: text(evidence.provenance) })
+                ])
+              ))
+          ]);
+        }
+
+        function confidencePanel(item) {
+          const entries = Object.entries(item?.confidence ?? {});
+          return el('section', { id: 'confidence-panel', className: 'panel' }, [
+            el('h2', { text: 'Confidence' }),
+            entries.length === 0
+              ? el('p', { className: 'empty', text: 'No confidence values are attached to the current selection.' })
+              : el('div', { className: 'list' }, entries.map(([dimension, value]) =>
+                el('div', { className: 'row' }, [
+                  el('span', { text: dimension }),
+                  el('span', { className: `badge ${value}`, text: value })
+                ])
+              )),
+            item?.uncertaintyReason ? el('p', { className: 'muted', text: item.uncertaintyReason }) : ''
+          ]);
+        }
+
+        function diagnosticsPanel() {
+          const diagnostics = data.diagnostics ?? [];
+          return el('section', { id: 'diagnostics-panel', className: 'panel' }, [
+            el('h2', { text: 'Diagnostics' }),
+            diagnostics.length === 0
+              ? el('p', { className: 'empty', text: 'No diagnostics reported.' })
+              : el('div', { className: 'list' }, diagnostics.map((diagnostic) =>
+                el('button', {
+                  className: `item diagnostic ${diagnostic.severity === 'error' ? 'is-highlighted' : ''}`,
+                  type: 'button',
+                  onclick: () => selectItem('diagnostic', diagnostic.id)
+                }, [
+                  el('div', { className: 'row' }, [
+                    el('strong', { text: diagnostic.id }),
+                    el('span', { className: `badge ${diagnostic.severity}`, text: diagnostic.severity })
+                  ]),
+                  el('p', { text: diagnostic.message })
+                ])
+              ))
+          ]);
+        }
+
+        function render() {
+          const flow = selectedFlow();
+          const highlighted = selectedFlowIds(flow);
+          const currentItem = selectedItem(flow);
+          app.replaceChildren(el('div', { className: 'app-shell' }, [
+            el('header', { className: 'topbar' }, [
+              el('div', {}, [
+                el('h1', { text: 'Architecture Flows' }),
+                el('p', {
+                  className: 'metadata',
+                  text: `${text(data.metadata?.repository)} @ ${text(data.metadata?.branch)} (${text(data.metadata?.commit).slice(0, 12)})`
+                })
+              ]),
+              flowSelector(),
+              groupSelector()
+            ]),
+            el('div', { className: 'layout' }, [
+              el('div', { className: 'column' }, [
+                graphPanel('node', data.nodes, highlighted.nodeIds),
+                graphPanel('edge', data.edges, highlighted.edgeIds)
+              ]),
+              el('div', { className: 'column' }, [
+                stepsPanel(flow),
+                evidencePanel(currentItem)
+              ]),
+              el('div', { className: 'column' }, [
+                confidencePanel(currentItem),
+                diagnosticsPanel()
+              ])
+            ])
+          ]));
+        }
+
+        render();
+      })();
+    </script>
   </body>
 </html>

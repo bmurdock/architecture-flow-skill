@@ -1,0 +1,6 @@
+{
+  "name": "tiny-node-service",
+  "private": true,
+  "type": "module",
+  "main": "./src/server.js"
+}

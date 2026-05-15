@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "0.1.0",
+  "metadata": {
+    "repository": "fixture",
+    "branch": "main",
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "generatedAt": "2026-05-14T12:00:00.000Z",
+    "generationMode": "codex-session",
+    "privacy": "local-only"
+  },
+  "evidence": [
+    {
+      "id": "ev:src/server.ts",
+      "kind": "note",
+      "path": "src/server.ts",
+      "provenance": "manual",
+      "reason": "Mentions the server file."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node:server",
+      "kind": "module",
+      "label": "Server",
+      "evidence": ["ev:src/server.ts"],
+      "confidence": {
+        "overall": "high"
+      }
+    },
+    {
+      "id": "node:handler",
+      "kind": "function",
+      "label": "Handler",
+      "evidence": ["ev:src/server.ts"],
+      "confidence": {
+        "overall": "medium"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:server-to-handler",
+      "kind": "calls",
+      "from": "node:server",
+      "to": "node:handler",
+      "evidence": ["ev:src/server.ts"],
+      "confidence": {
+        "overall": "high",
+        "direction": "high"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "id": "flow:server",
+      "name": "Server flow",
+      "summary": "The server invokes the handler.",
+      "trigger": "Request",
+      "entry": "node:server",
+      "exit": "node:handler",
+      "steps": [
+        {
+          "id": "step:handler",
+          "order": 1,
+          "node": "node:handler",
+          "edge": "edge:server-to-handler",
+          "description": "Invoke the handler.",
+          "evidence": ["ev:src/server.ts"],
+          "confidence": {
+            "overall": "high",
+            "semantics": "high"
+          }
+        }
+      ]
+    }
+  ],
+  "diagnostics": []
+}

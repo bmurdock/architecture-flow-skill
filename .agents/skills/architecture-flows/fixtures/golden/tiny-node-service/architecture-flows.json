@@ -1,0 +1,172 @@
+{
+  "schemaVersion": "0.1.0",
+  "metadata": {
+    "repository": "tiny-node-service",
+    "branch": "main",
+    "commit": "unknown",
+    "generatedAt": "2026-05-14T12:00:00.000Z",
+    "generationMode": "manual",
+    "privacy": "local-only",
+    "fixturePurpose": "Golden fixture for local validation, semantic verification, and viewer rendering smoke tests."
+  },
+  "evidence": [
+    {
+      "id": "ev:package-json#main",
+      "kind": "manifest",
+      "path": "package.json",
+      "language": "json",
+      "provenance": "committed-golden-fixture",
+      "reason": "Declares ./src/server.js as the package main entrypoint.",
+      "contentHash": "sha256:a27e8a5c3f83d854f95ce1c65aa58479708d0a01c608880f213daf877bca8c43"
+    },
+    {
+      "id": "ev:src/server-js#startServer",
+      "kind": "symbol",
+      "path": "src/server.js",
+      "symbol": "startServer",
+      "language": "javascript",
+      "provenance": "committed-golden-fixture",
+      "reason": "Exports the request entrypoint and calls buildGreeting.",
+      "contentHash": "sha256:e5ececf3a0da3763b26f78e80576dc766385ea435315441613e8c1f98bda6869",
+      "location": {
+        "startLine": 3,
+        "endLine": 5
+      }
+    },
+    {
+      "id": "ev:src/handler-js#buildGreeting",
+      "kind": "symbol",
+      "path": "src/handler.js",
+      "symbol": "buildGreeting",
+      "language": "javascript",
+      "provenance": "committed-golden-fixture",
+      "reason": "Exports the greeting builder used by startServer.",
+      "contentHash": "sha256:6690d958c8601a6980280cb208a372ef673f5123cbab673850dd2c8653ec97cb",
+      "location": {
+        "startLine": 1,
+        "endLine": 3
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node:package-entrypoint",
+      "kind": "manifest-entrypoint",
+      "label": "package main entrypoint",
+      "path": "package.json",
+      "evidence": ["ev:package-json#main"],
+      "confidence": {
+        "overall": "high",
+        "existence": "high",
+        "semantics": "high"
+      }
+    },
+    {
+      "id": "node:start-server",
+      "kind": "function",
+      "label": "startServer",
+      "path": "src/server.js",
+      "symbol": "startServer",
+      "evidence": ["ev:src/server-js#startServer"],
+      "confidence": {
+        "overall": "high",
+        "existence": "high",
+        "semantics": "high"
+      }
+    },
+    {
+      "id": "node:build-greeting",
+      "kind": "function",
+      "label": "buildGreeting",
+      "path": "src/handler.js",
+      "symbol": "buildGreeting",
+      "evidence": ["ev:src/handler-js#buildGreeting"],
+      "confidence": {
+        "overall": "high",
+        "existence": "high",
+        "semantics": "high"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:package-to-start-server",
+      "kind": "declares-entrypoint",
+      "from": "node:package-entrypoint",
+      "to": "node:start-server",
+      "evidence": ["ev:package-json#main", "ev:src/server-js#startServer"],
+      "confidence": {
+        "overall": "high",
+        "direction": "high",
+        "semantics": "high"
+      }
+    },
+    {
+      "id": "edge:start-server-to-build-greeting",
+      "kind": "calls",
+      "from": "node:start-server",
+      "to": "node:build-greeting",
+      "evidence": ["ev:src/server-js#startServer", "ev:src/handler-js#buildGreeting"],
+      "confidence": {
+        "overall": "high",
+        "direction": "high",
+        "semantics": "high"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "id": "flow:http-greeting",
+      "name": "HTTP greeting request",
+      "summary": "A request enters the package main module and returns a greeting from the handler.",
+      "trigger": "Request object passed to startServer",
+      "entry": "node:start-server",
+      "exit": "node:build-greeting",
+      "steps": [
+        {
+          "id": "step:load-entrypoint",
+          "order": 1,
+          "node": "node:package-entrypoint",
+          "edge": "edge:package-to-start-server",
+          "description": "Use the package main field to locate src/server.js.",
+          "evidence": ["ev:package-json#main"],
+          "confidence": {
+            "overall": "high",
+            "semantics": "high"
+          }
+        },
+        {
+          "id": "step:receive-request",
+          "order": 2,
+          "node": "node:start-server",
+          "edge": "edge:start-server-to-build-greeting",
+          "description": "Call buildGreeting with request.name.",
+          "evidence": ["ev:src/server-js#startServer"],
+          "confidence": {
+            "overall": "high",
+            "semantics": "high"
+          }
+        },
+        {
+          "id": "step:return-greeting",
+          "order": 3,
+          "node": "node:build-greeting",
+          "description": "Return a greeting string for the supplied name.",
+          "evidence": ["ev:src/handler-js#buildGreeting"],
+          "confidence": {
+            "overall": "high",
+            "semantics": "high"
+          }
+        }
+      ]
+    }
+  ],
+  "diagnostics": [
+    {
+      "id": "diag:golden-fixture-scope",
+      "severity": "info",
+      "message": "Golden fixture intentionally covers a tiny local repository and one flow only.",
+      "evidence": ["ev:package-json#main"]
+    }
+  ]
+}

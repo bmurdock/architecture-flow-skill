@@ -7,6 +7,11 @@
 - Flow steps are ordered and reference existing nodes.
 - Edges reference existing source and target nodes.
 - Confidence values are valid and low-confidence items explain uncertainty.
+- Low-confidence deltas since the last reviewed artifact have explicit human review notes before acceptance.
+- Inferred or likely relationships are not marked high confidence.
+- `verify-flows.mjs` has been run after `validate-flows.mjs`; blocking errors are resolved and warnings are reviewed.
+- Evidence hashes and metadata commit were checked with `--repo` when repository context was available.
 - Diagnostics capture gaps, unsupported claims, stale evidence, and required human review.
+- Human review is explicitly required for remaining warnings, unavailable repository context, inferred framework behavior, or incomplete coverage diagnostics.
 - Secret-bearing files, raw environment values, credentials, and unnecessary private snippets are absent.
 - HTML was generated from validated JSON and is not the canonical source.

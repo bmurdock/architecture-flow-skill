@@ -1,0 +1,48 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  npm-test:
+    name: npm test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Run tests
+        run: npm test
+
+      - name: Generate golden review artifact
+        run: |
+          mkdir -p artifacts/golden-review
+          cp .agents/skills/architecture-flows/fixtures/golden/tiny-node-service/architecture-flows.json artifacts/golden-review/architecture-flows.json
+          node .agents/skills/architecture-flows/scripts/validate-flows.mjs \
+            .agents/skills/architecture-flows/fixtures/golden/tiny-node-service/architecture-flows.json \
+            > artifacts/golden-review/validate.txt
+          node .agents/skills/architecture-flows/scripts/verify-flows.mjs \
+            --repo .agents/skills/architecture-flows/fixtures/golden/tiny-node-service \
+            .agents/skills/architecture-flows/fixtures/golden/tiny-node-service/architecture-flows.json \
+            > artifacts/golden-review/verify.txt
+          node .agents/skills/architecture-flows/scripts/render-viewer.mjs \
+            .agents/skills/architecture-flows/fixtures/golden/tiny-node-service/architecture-flows.json \
+            artifacts/golden-review/architecture-flows.html
+
+      - name: Upload golden review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-architecture-flow-review
+          path: artifacts/golden-review/
+          if-no-files-found: error

@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "0.1.0",
+  "metadata": {
+    "repository": "fixture",
+    "branch": "main",
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "generatedAt": "2026-05-14T12:00:00.000Z",
+    "generationMode": "codex-session",
+    "privacy": "local-only"
+  },
+  "evidence": [
+    {
+      "id": "ev:src/server.ts#startServer",
+      "kind": "symbol",
+      "path": "src/server.ts",
+      "symbol": "startServer",
+      "language": "typescript",
+      "provenance": "typescript-ast",
+      "reason": "Defines the server entrypoint."
+    },
+    {
+      "id": "ev:src/routes.ts#routes",
+      "kind": "symbol",
+      "path": "src/routes.ts",
+      "symbol": "routes",
+      "language": "typescript",
+      "provenance": "typescript-ast",
+      "reason": "Defines route registration."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node:server",
+      "kind": "module",
+      "label": "Server",
+      "evidence": ["ev:src/server.ts#startServer"],
+      "confidence": {
+        "overall": "high"
+      }
+    },
+    {
+      "id": "node:routes",
+      "kind": "module",
+      "label": "Routes",
+      "evidence": ["ev:src/routes.ts#routes"],
+      "confidence": {
+        "overall": "high"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:server-to-routes",
+      "kind": "registers",
+      "from": "node:server",
+      "to": "node:routes",
+      "basis": "Inferred relationship from indirect registration evidence.",
+      "evidence": ["ev:src/server.ts#startServer", "ev:src/routes.ts#routes"],
+      "confidence": {
+        "overall": "medium",
+        "direction": "medium"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "id": "flow:startup",
+      "name": "Startup",
+      "summary": "Server startup route registration.",
+      "trigger": "Process startup",
+      "entry": "node:server",
+      "exit": "node:routes",
+      "steps": [
+        {
+          "id": "step:register-routes",
+          "order": 1,
+          "node": "node:routes",
+          "edge": "edge:server-to-routes",
+          "description": "Register routes through indirect framework wiring.",
+          "evidence": ["ev:src/server.ts#startServer", "ev:src/routes.ts#routes"],
+          "confidence": {
+            "overall": "medium",
+            "semantics": "medium"
+          }
+        }
+      ]
+    }
+  ],
+  "diagnostics": []
+}

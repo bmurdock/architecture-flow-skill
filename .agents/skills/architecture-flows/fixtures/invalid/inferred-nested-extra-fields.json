@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "0.1.0",
+  "metadata": {
+    "repository": "fixture",
+    "branch": "main",
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "generatedAt": "2026-05-14T12:00:00.000Z",
+    "generationMode": "codex-session",
+    "privacy": "local-only"
+  },
+  "evidence": [
+    {
+      "id": "ev:src/server.ts#startServer",
+      "kind": "symbol",
+      "path": "src/server.ts",
+      "symbol": "startServer",
+      "language": "typescript",
+      "provenance": "typescript-ast",
+      "reason": "Defines the server entrypoint."
+    },
+    {
+      "id": "ev:src/handler.ts#handleRequest",
+      "kind": "symbol",
+      "path": "src/handler.ts",
+      "symbol": "handleRequest",
+      "language": "typescript",
+      "provenance": "typescript-ast",
+      "reason": "Defines the request handler."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node:server",
+      "kind": "module",
+      "label": "Server",
+      "responsibilities": ["Likely owns request routing."],
+      "evidence": ["ev:src/server.ts#startServer"],
+      "confidence": {
+        "overall": "high"
+      }
+    },
+    {
+      "id": "node:handler",
+      "kind": "function",
+      "label": "handleRequest",
+      "evidence": ["ev:src/handler.ts#handleRequest"],
+      "confidence": {
+        "overall": "high"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:server-to-handler",
+      "kind": "calls",
+      "from": "node:server",
+      "to": "node:handler",
+      "claim": {
+        "summary": "Probably calls the handler for every request."
+      },
+      "evidence": ["ev:src/server.ts#startServer"],
+      "confidence": {
+        "overall": "high",
+        "direction": "high"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "id": "flow:request",
+      "name": "Request",
+      "summary": "Handle a request.",
+      "trigger": "Request",
+      "entry": "node:server",
+      "exit": "node:handler",
+      "steps": [
+        {
+          "id": "step:handler",
+          "order": 1,
+          "node": "node:handler",
+          "edge": "edge:server-to-handler",
+          "details": {
+            "notes": ["Appears to run after routing."]
+          },
+          "description": "Run the handler.",
+          "evidence": ["ev:src/handler.ts#handleRequest"],
+          "confidence": {
+            "overall": "high",
+            "semantics": "high"
+          }
+        }
+      ]
+    }
+  ],
+  "diagnostics": []
+}

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "0.1.0",
+  "metadata": {
+    "repository": "fixture",
+    "branch": "main",
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "generatedAt": "2026-05-14T12:00:00.000Z",
+    "generationMode": "codex-session",
+    "privacy": "local-only"
+  },
+  "evidence": [
+    {
+      "id": "ev:src/server.ts#startServer",
+      "kind": "symbol",
+      "path": "src/server.ts",
+      "symbol": "startServer",
+      "language": "typescript",
+      "provenance": "typescript-ast",
+      "reason": "Defines the server entrypoint."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node:server",
+      "kind": "module",
+      "label": "Server",
+      "description": "Likely owns request routing.",
+      "evidence": ["ev:src/server.ts#startServer"],
+      "confidence": {
+        "overall": "high",
+        "semantics": "high"
+      }
+    }
+  ],
+  "edges": [],
+  "flows": [
+    {
+      "id": "flow:start",
+      "name": "Start",
+      "summary": "Start the server.",
+      "trigger": "Process startup",
+      "entry": "node:server",
+      "exit": "node:server",
+      "steps": [
+        {
+          "id": "step:start",
+          "order": 1,
+          "node": "node:server",
+          "description": "Run startServer.",
+          "evidence": ["ev:src/server.ts#startServer"],
+          "confidence": {
+            "overall": "high"
+          }
+        }
+      ]
+    }
+  ],
+  "diagnostics": []
+}

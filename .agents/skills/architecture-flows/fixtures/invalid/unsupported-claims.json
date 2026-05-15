@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "0.1.0",
+  "metadata": {
+    "repository": "fixture",
+    "branch": "main",
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "generatedAt": "2026-05-14T12:00:00.000Z",
+    "generationMode": "codex-session",
+    "privacy": "local-only"
+  },
+  "evidence": [
+    {
+      "id": "ev:unknown",
+      "kind": "note",
+      "path": "unknown",
+      "provenance": "manual",
+      "reason": "Placeholder evidence."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node:api",
+      "kind": "service",
+      "label": "likely API service",
+      "evidence": ["ev:unknown"],
+      "confidence": {
+        "overall": "high"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:api-self",
+      "kind": "calls",
+      "from": "node:api",
+      "to": "node:api",
+      "evidence": ["ev:unknown"],
+      "confidence": {
+        "overall": "high",
+        "direction": "high"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "id": "flow:api",
+      "name": "API request",
+      "summary": "A request likely reaches the API service.",
+      "trigger": "Assumed HTTP request",
+      "steps": [
+        {
+          "id": "step:api",
+          "order": 1,
+          "node": "node:api",
+          "description": "Probably handles the request.",
+          "evidence": ["ev:unknown"],
+          "confidence": {
+            "overall": "high"
+          }
+        }
+      ]
+    }
+  ],
+  "diagnostics": [
+    {
+      "id": "diag:unsupported",
+      "severity": "error",
+      "message": "Unsupported behavior is present in the flow.",
+      "evidence": ["ev:unknown"]
+    }
+  ]
+}

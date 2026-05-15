@@ -22,6 +22,34 @@
           "type": "string",
           "enum": ["codex-session", "api-structured-output", "manual"]
         },
+        "incrementalMode": {
+          "description": "Regeneration strategy used for this artifact. Optional for legacy artifacts; incremental tooling reports diagnostics when missing.",
+          "type": "string",
+          "enum": ["full", "delta", "verify-only"]
+        },
+        "schemaVersion": {
+          "description": "Schema version used by the generator or planner metadata.",
+          "type": "string"
+        },
+        "sourceCommit": {
+          "description": "Source repository commit used for evidence and committed-change detection.",
+          "type": "string"
+        },
+        "artifactHash": {
+          "description": "Canonical artifact hash computed by incremental planning.",
+          "type": "string"
+        },
+        "parentArtifactHash": {
+          "description": "Previous artifact hash when regenerating from an earlier artifact; null for a root artifact.",
+          "type": ["string", "null"]
+        },
+        "extractorVersions": {
+          "description": "Deterministic local extractor and verifier versions or hashes.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "privacy": {
           "type": "string",
           "enum": ["local-only", "redacted-evidence-approved", "publish-approved"]

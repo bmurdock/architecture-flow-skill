@@ -21,22 +21,27 @@ Use this skill when a user asks to map, explain, regenerate, validate, or review
 3. Scan deterministic evidence before synthesizing architecture claims.
 4. Synthesize JSON from evidence only, using `references/synthesis-instructions.md`.
 5. Validate the JSON with `scripts/validate-flows.mjs`.
-6. Repair unsupported claims, broken references, invalid confidence values, or missing evidence.
-7. Generate the HTML viewer only after JSON validation passes.
-8. Review against `references/review-checklist.md` before calling the work complete.
+6. Verify executable semantics with `scripts/verify-flows.mjs`; pass `--repo <path>` when the source repository is available.
+7. Repair unsupported claims, broken references, invalid confidence values, stale evidence, or missing evidence.
+8. For regeneration, run `scripts/plan-incremental.mjs --repo <path> --artifact <architecture-flows.json> --mode <full|delta|verify-only>` before changing the artifact.
+9. Generate the HTML viewer only after JSON validation and verification pass.
+10. Review against `references/review-checklist.md` before calling the work complete.
 
 ## Safety Rules
 
 - Treat `architecture-flows.json` as the source of truth; never hand-edit HTML as canonical architecture data.
 - Every node, edge, and flow step must reference reusable evidence.
 - Low-confidence items require an uncertainty reason.
+- Inferred relationships must be downgraded from high confidence and explain uncertainty.
 - Unsupported claims belong in diagnostics or gaps, not normal nodes, edges, or steps.
 - Prefer symbols and stable IDs over brittle line numbers. Line ranges are optional.
 - Exclude or redact secrets, credentials, raw environment values, and unnecessary private data.
+- Preserve only curated fields listed by the incremental plan; reject unknown human-curated fields unless they can be explicitly carried forward.
 
 ## Definition of Done
 
 - JSON validates against the schema and semantic checks.
+- `verify-flows.mjs` reports no blocking errors; warnings are visible and reviewed.
 - The artifact has no broken node, edge, flow, or evidence references.
 - Evidence and confidence are visible for meaningful claims.
 - Diagnostics explain gaps, uncertainty, and review needs.
