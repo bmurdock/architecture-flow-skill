@@ -2,11 +2,11 @@
 
 ## Why this project exists
 
-This project exists to explore and plan a Codex skill that generates architecture flow maps from real repositories. The desired skill should help a developer understand important workflows across packages, components, services, routes, tests, data stores, and external integrations without pretending that a diagram alone is architecture truth.
+This project exists to maintain a Codex skill that generates architecture flow maps from real repositories. The skill should help a developer understand important workflows across packages, components, services, routes, tests, data stores, and external integrations without pretending that a diagram alone is architecture truth.
 
-The motivating idea is useful: produce a human-readable HTML view and a machine-readable JSON file that future Codex sessions can use as context. The hard part is making that output trustworthy. A skill that simply asks a model to infer a whole application can produce plausible but unsupported diagrams. This project exists to design the safer version: local extraction first, evidence-backed JSON as the source of truth, schema validation, explicit uncertainty, and review gates where confidence is low.
+The motivating idea is useful: produce a human-readable HTML view and a machine-readable JSON file that future Codex sessions can use as context. The hard part is making that output trustworthy. A skill that simply asks a model to infer a whole application can produce plausible but unsupported diagrams. This project exists to ship the safer version: local extraction first, evidence-backed JSON as the source of truth, schema validation, explicit uncertainty, and review gates where confidence is low.
 
-The project is currently a planning and design workspace, not the production skill itself. Its job is to turn the conversation summary and research report into a focused implementation path for a reusable Codex skill.
+The project currently contains the first MVP of that skill, including scanner, normalizer, validator, verifier, incremental planning, viewer rendering, fixtures, tests, and workflow documentation. Its job is to keep the skill useful, auditable, and conservative as it grows beyond the initial JavaScript and TypeScript-oriented workflow.
 
 ## Design goals
 
@@ -16,7 +16,7 @@ The project is currently a planning and design workspace, not the production ski
 - Prefer important workflows over exhaustive whole-repo diagrams.
 - Keep generation local-first and privacy-aware, sending only narrowed evidence bundles to model synthesis when model calls are used.
 - Make artifacts repeatable, diffable, and suitable for review in pull requests or future Codex sessions.
-- Start with a small, useful MVP before adding broader language coverage, CI automation, or rich viewer behavior.
+- Keep the MVP small and useful before adding broader language coverage, richer viewer behavior, or API orchestration.
 
 ## Non-goals
 
@@ -26,7 +26,7 @@ This project does not aim to:
 - Generate visually impressive graphs that cannot be audited back to source evidence.
 - Map every component in large applications by default.
 - Replace ADRs, human architecture review, or project-specific vocabulary.
-- Depend on heavyweight infrastructure, Rust accelerators, hosted agents, or CI automation for the first usable version.
+- Depend on heavyweight infrastructure, Rust accelerators, hosted agents, or mandatory CI automation for the usable local workflow.
 - Publish private architecture artifacts or upload raw repository contents without an explicit privacy decision.
 - Optimize first for the large enterprise Angular case study before the workflow and evidence model are proven on smaller repositories.
 
