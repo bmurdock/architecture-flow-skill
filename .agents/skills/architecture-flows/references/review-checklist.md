@@ -11,6 +11,10 @@
 - Inferred or likely relationships are not marked high confidence.
 - `verify-flows.mjs` has been run after `validate-flows.mjs`; blocking errors are resolved and warnings are reviewed.
 - Evidence hashes and metadata commit were checked with `--repo` when repository context was available.
+- Strict mode was run with `verify-flows.mjs --strict --repo <source-repo>` before rendering when repository context was available.
+- In strict mode, every node, edge, and flow step has `derivedFrom` fact references.
+- In strict mode, every `derivedFrom` value points to an existing deterministic fact ID, and every fact references evidence.
+- In strict mode, evidence records used by facts have current `sha256:` content hashes.
 - Diagnostics capture gaps, unsupported claims, stale evidence, and required human review.
 - Human review is explicitly required for remaining warnings, unavailable repository context, inferred framework behavior, or incomplete coverage diagnostics.
 - Secret-bearing files, raw environment values, credentials, and unnecessary private snippets are absent.

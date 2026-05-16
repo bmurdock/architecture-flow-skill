@@ -112,6 +112,46 @@ function normalizeRedactions(scan) {
   }));
 }
 
+function normalizeFacts(scan, fileEvidenceIdByPath, diagnostics) {
+  const missingEvidencePaths = new Set();
+  return normalizeCollection(scan.facts ?? [], (item) => stableId('fact', [
+    item.path,
+    item.kind,
+    item.symbol ?? item.source ?? item.target
+  ], {
+    kind: item.kind,
+    path: item.path,
+    symbol: item.symbol,
+    source: item.source,
+    target: item.target,
+    language: item.language,
+    provenance: item.provenance,
+    location: item.location
+  }), (item) => {
+    const fileEvidenceId = fileEvidenceIdByPath.get(item.path);
+    if (!fileEvidenceId && !missingEvidencePaths.has(item.path)) {
+      missingEvidencePaths.add(item.path);
+      diagnostics.push({
+        id: `fact-without-file-evidence:${item.path}`,
+        severity: 'warning',
+        message: `Fact for ${item.path} has no normalized file evidence.`
+      });
+    }
+
+    return {
+      kind: item.kind,
+      path: item.path,
+      symbol: item.symbol,
+      source: item.source,
+      target: item.target,
+      language: item.language,
+      provenance: item.provenance,
+      location: item.location,
+      evidence: [fileEvidenceId].filter(Boolean)
+    };
+  });
+}
+
 export function normalizeEvidence(scan) {
   const metadata = {
     repositoryPath: scan.metadata?.repositoryPath ?? null,
@@ -119,21 +159,27 @@ export function normalizeEvidence(scan) {
     generatedAt: scan.metadata?.generatedAt ?? null,
     normalizer: 'normalize-evidence.mjs'
   };
+  const diagnostics = (scan.diagnostics ?? []).map((item) => ({ ...item }));
+  const fileTree = normalizeCollection(scan.fileTree ?? [], (file) => stableId('file-tree', [file.path], file), (file) => ({
+    path: file.path,
+    kind: file.kind,
+    sizeBytes: file.sizeBytes,
+    provenance: provenance(scan, 'file-tree')
+  }));
+  const files = normalizeCollection(scan.files ?? [], (file) => stableId('file', [file.path], file), (file) => ({
+    path: file.path,
+    kind: file.kind,
+    sizeBytes: file.sizeBytes,
+    contentHash: file.contentHash,
+    provenance: provenance(scan, 'file')
+  }));
+  const fileEvidenceIdByPath = new Map(files.map((file) => [file.path, file.id]));
+  const facts = normalizeFacts(scan, fileEvidenceIdByPath, diagnostics);
 
   return {
     metadata,
-    fileTree: normalizeCollection(scan.fileTree ?? [], (file) => stableId('file-tree', [file.path], file), (file) => ({
-      path: file.path,
-      kind: file.kind,
-      sizeBytes: file.sizeBytes,
-      provenance: provenance(scan, 'file-tree')
-    })),
-    files: normalizeCollection(scan.files ?? [], (file) => stableId('file', [file.path], file), (file) => ({
-      path: file.path,
-      kind: file.kind,
-      sizeBytes: file.sizeBytes,
-      provenance: provenance(scan, 'file')
-    })),
+    fileTree,
+    files,
     manifests: normalizeCollection(scan.manifests ?? [], (manifest) => stableId('manifest', [manifest.path], manifest), (manifest) => ({
       path: manifest.path,
       kind: manifest.kind,
@@ -163,8 +209,9 @@ export function normalizeEvidence(scan) {
       manifest: item.manifest,
       provenance: provenance(scan, 'entrypoint')
     }), entrypointCollisionSuffix),
+    facts,
     redactions: normalizeRedactions(scan),
-    diagnostics: (scan.diagnostics ?? []).map((item) => ({ ...item }))
+    diagnostics
   };
 }
 

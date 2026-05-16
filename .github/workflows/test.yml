@@ -22,6 +22,9 @@ jobs:
         with:
           node-version: 24
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Run tests
         run: npm test
 
@@ -36,6 +39,25 @@ jobs:
             --repo .agents/skills/architecture-flows/fixtures/golden/tiny-node-service \
             .agents/skills/architecture-flows/fixtures/golden/tiny-node-service/architecture-flows.json \
             > artifacts/golden-review/verify.txt
+          cp .agents/skills/architecture-flows/fixtures/golden/tiny-node-service-strict/architecture-flows.json artifacts/golden-review/strict-architecture-flows.json
+          node --input-type=module - <<'NODE'
+          import { spawnSync } from 'node:child_process';
+          import fs from 'node:fs';
+
+          const artifactPath = 'artifacts/golden-review/strict-architecture-flows.json';
+          const head = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout.trim();
+          const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
+          artifact.metadata.commit = head;
+          fs.writeFileSync(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`);
+          NODE
+          node .agents/skills/architecture-flows/scripts/validate-flows.mjs \
+            .agents/skills/architecture-flows/fixtures/golden/tiny-node-service-strict/architecture-flows.json \
+            > artifacts/golden-review/strict-validate.txt
+          node .agents/skills/architecture-flows/scripts/verify-flows.mjs \
+            --strict \
+            --repo .agents/skills/architecture-flows/fixtures/golden/tiny-node-service-strict \
+            artifacts/golden-review/strict-architecture-flows.json \
+            > artifacts/golden-review/strict-verify.txt
           node .agents/skills/architecture-flows/scripts/render-viewer.mjs \
             .agents/skills/architecture-flows/fixtures/golden/tiny-node-service/architecture-flows.json \
             artifacts/golden-review/architecture-flows.html

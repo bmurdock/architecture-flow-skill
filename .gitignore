@@ -6,6 +6,7 @@ node_modules/
 # Test and coverage output
 coverage/
 .nyc_output/
+/tmp/
 
 # Build output
 dist/

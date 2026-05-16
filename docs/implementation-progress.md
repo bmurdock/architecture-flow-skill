@@ -4,7 +4,7 @@
 
 ### Baseline Evaluation
 
-- Current branch: `implement-architecture-flows-skill`.
+- Baseline branch: `implement-architecture-flows-skill`.
 - Current scope source: `docs/implementation-plan.md`.
 - Baseline verification: `npm test` passed with 6 validator tests.
 - Subagent cleanup: two stale repository-rooted Codex stdio child processes were terminated before implementation continued.
@@ -32,3 +32,21 @@
 
 - All phases in `docs/implementation-plan.md` are implemented for the first MVP milestone.
 - Remaining work is future hardening beyond the MVP: broader language extraction, richer renderer UX, real generated artifacts for target repositories, and API orchestration if later approved.
+
+## 2026-05-16
+
+### Hardening Update
+
+- Current branch: `architecture-flow-hardening`.
+- Scope source: `docs/superpowers/plans/2026-05-16-architecture-flow-hardening.md`.
+- Added optional `facts` and `derivedFrom` provenance fields to the schema and semantic validator.
+- Added strict verifier mode for fact provenance, repository context, current `sha256:` evidence hashes, and stricter warning promotion.
+- Added parser-backed JS/TS fact extraction with `ts-morph` while preserving the existing regex imports and symbols for compatibility.
+- Added file content hashes for candidate evidence files and normalized fact-to-evidence links.
+- Added a strict golden fixture and CI checks that patch the fixture commit to the current checkout before strict verification.
+- Updated scratch handling so root `/tmp/` is ignored while nested source paths such as `src/tmp` remain visible to scans and git.
+
+### Current Status
+
+- The MVP is now hardened for JS/TS evidence quality and strict claim provenance.
+- Remaining future work is broader non-JS/TS language extraction, richer renderer UX, real generated artifacts for target repositories, and API orchestration if later approved.

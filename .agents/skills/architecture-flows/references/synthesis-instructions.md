@@ -28,9 +28,21 @@ Run both checks before generating the viewer:
 ```bash
 node .agents/skills/architecture-flows/scripts/validate-flows.mjs docs/architecture/architecture-flows.json
 node .agents/skills/architecture-flows/scripts/verify-flows.mjs --repo <source-repo> docs/architecture/architecture-flows.json
+node .agents/skills/architecture-flows/scripts/verify-flows.mjs --strict --repo <source-repo> docs/architecture/architecture-flows.json
 ```
 
 If repository context is unavailable, run `verify-flows.mjs` without `--repo` and keep the warning in review notes. Blocking verifier errors require removing the claim, downgrading confidence with `uncertaintyReason`, replacing placeholder evidence, resolving diagnostics with `error` severity, or regenerating evidence from the current repository state.
+
+## Strict Mode
+
+Use strict mode before rendering when repository context is available.
+
+- Every node, edge, and flow step must include `derivedFrom`.
+- Every `derivedFrom` value must reference a deterministic fact ID.
+- Every fact must reference evidence.
+- Every evidence record used by facts must include a `sha256:` content hash when repository context is available.
+- Run `verify-flows.mjs --strict --repo <source-repo>` before rendering.
+- If strict verification fails, remove the claim, regenerate facts, downgrade the claim into diagnostics, or stop for human review.
 
 For incremental work, run a plan first:
 

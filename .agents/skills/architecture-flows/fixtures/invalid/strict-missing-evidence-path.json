@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "0.1.0",
+  "metadata": {
+    "repository": "architecture-flow-skill",
+    "branch": "main",
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "generatedAt": "2026-05-14T12:00:00.000Z",
+    "generationMode": "codex-session",
+    "privacy": "local-only"
+  },
+  "evidence": [
+    {
+      "id": "ev:missing.ts",
+      "kind": "symbol",
+      "path": "missing.ts",
+      "symbol": "missing",
+      "language": "typescript",
+      "provenance": "typescript-ast",
+      "reason": "Defines a missing source symbol.",
+      "contentHash": "sha256:96384a339f9384d2e2d74012b143bb7a06a60fa2d35e211510b97790ffe87e4f"
+    }
+  ],
+  "facts": [
+    {
+      "id": "fact:missing-symbol",
+      "kind": "entrypoint",
+      "path": "missing.ts",
+      "symbol": "missing",
+      "language": "typescript",
+      "provenance": "typescript-ast",
+      "evidence": ["ev:missing.ts"]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node:missing",
+      "kind": "module",
+      "label": "Missing source",
+      "path": "missing.ts",
+      "derivedFrom": ["fact:missing-symbol"],
+      "evidence": ["ev:missing.ts"],
+      "confidence": {
+        "overall": "high"
+      }
+    }
+  ],
+  "edges": [],
+  "flows": [
+    {
+      "id": "flow:missing",
+      "name": "Missing source check",
+      "summary": "The source record points at a missing file.",
+      "trigger": "verification",
+      "entry": "node:missing",
+      "steps": [
+        {
+          "id": "step:missing",
+          "order": 1,
+          "node": "node:missing",
+          "derivedFrom": ["fact:missing-symbol"],
+          "description": "Read the missing source.",
+          "evidence": ["ev:missing.ts"],
+          "confidence": {
+            "overall": "medium"
+          }
+        }
+      ]
+    }
+  ]
+}
