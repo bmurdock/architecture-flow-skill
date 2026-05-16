@@ -13,6 +13,8 @@ const verifier = path.join(skillRoot, 'scripts/verify-flows.mjs');
 const renderer = path.join(skillRoot, 'scripts/render-viewer.mjs');
 const goldenRoot = path.join(skillRoot, 'fixtures/golden/tiny-node-service');
 const goldenArtifact = path.join(goldenRoot, 'architecture-flows.json');
+const strictGoldenRoot = path.join(skillRoot, 'fixtures/golden/tiny-node-service-strict');
+const strictGoldenArtifact = path.join(strictGoldenRoot, 'architecture-flows.json');
 const reviewChecklist = path.join(skillRoot, 'references/review-checklist.md');
 const synthesisInstructions = path.join(skillRoot, 'references/synthesis-instructions.md');
 
@@ -30,6 +32,21 @@ function withTempDir(fn) {
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+}
+
+function currentCommit() {
+  const result = spawnSync('git', ['rev-parse', 'HEAD'], {
+    cwd: repoRoot,
+    encoding: 'utf8'
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  return result.stdout.trim();
+}
+
+function writeArtifactWithCurrentCommit(sourcePath, outputPath) {
+  const artifact = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
+  artifact.metadata.commit = currentCommit();
+  fs.writeFileSync(outputPath, `${JSON.stringify(artifact, null, 2)}\n`);
 }
 
 function embeddedArtifact(html) {
@@ -73,12 +90,28 @@ describe('Phase 5 golden workflow', () => {
     });
   });
 
+  it('validates and strictly verifies the fact-derived tiny service golden artifact', () => {
+    const validate = runScript(validator, strictGoldenArtifact);
+    assert.equal(validate.status, 0, validate.stderr || validate.stdout);
+
+    withTempDir((dir) => {
+      const patchedArtifact = path.join(dir, 'architecture-flows.json');
+      writeArtifactWithCurrentCommit(strictGoldenArtifact, patchedArtifact);
+
+      const verify = runScript(verifier, '--strict', '--repo', strictGoldenRoot, patchedArtifact);
+      assert.equal(verify.status, 0, verify.stderr || verify.stdout);
+      assert.match(verify.stdout, /verified/i);
+      assert.doesNotMatch(verify.stdout, /warning/i);
+    });
+  });
+
   it('keeps the review checklist explicit about low-confidence delta review', () => {
     const checklist = fs.readFileSync(reviewChecklist, 'utf8');
 
     assert.match(checklist, /low-confidence deltas/i);
     assert.match(checklist, /human review/i);
     assert.match(checklist, /warnings are reviewed/i);
+    assert.match(checklist, /strict mode/i);
   });
 
   it('keeps synthesis instructions pinned to evidence-backed local-only JSON output', () => {
@@ -93,6 +126,9 @@ describe('Phase 5 golden workflow', () => {
     assert.match(instructions, /Do not include markdown fences/i);
     assert.match(instructions, /validate-flows\.mjs/);
     assert.match(instructions, /verify-flows\.mjs/);
+    assert.match(instructions, /--strict/);
+    assert.match(instructions, /derivedFrom/);
+    assert.match(instructions, /facts/);
     assert.match(instructions, /uncertaintyReason/);
   });
 });

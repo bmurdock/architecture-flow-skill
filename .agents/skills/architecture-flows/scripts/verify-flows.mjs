@@ -23,26 +23,34 @@ const placeholderPathPattern = /^(unknown|todo|tbd|placeholder|n\/a|none)$/i;
 
 function usage(exitCode) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
-  stream.write('Usage: verify-flows.mjs [--repo <path>] <architecture-flows.json> [...]\n');
+  stream.write('Usage: verify-flows.mjs [--strict] [--repo <path>] <architecture-flows.json> [...]\n');
   process.exit(exitCode);
 }
 
 function parseArgs(argv) {
   const files = [];
   let repoPath = null;
+  let strict = false;
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--help' || arg === '-h') {
       usage(0);
     }
+    if (arg === '--strict') {
+      strict = true;
+      continue;
+    }
     if (arg === '--repo') {
       repoPath = argv[index + 1];
-      if (!repoPath) {
+      if (!repoPath || repoPath.startsWith('--')) {
         usage(2);
       }
       index += 1;
       continue;
+    }
+    if (arg.startsWith('--')) {
+      usage(2);
     }
     files.push(arg);
   }
@@ -53,7 +61,8 @@ function parseArgs(argv) {
 
   return {
     files,
-    repoPath: repoPath ? path.resolve(repoPath) : null
+    repoPath: repoPath ? path.resolve(repoPath) : null,
+    strict
   };
 }
 
@@ -146,6 +155,14 @@ function addEvidenceRefDiagnostics(errors, refs, evidenceIds, context) {
   }
 }
 
+function addDiagnostic(strict, errors, warnings, message) {
+  if (strict) {
+    errors.push(message);
+  } else {
+    warnings.push(message);
+  }
+}
+
 function validateNodeReference(errors, nodeId, nodeIds, context) {
   if (nodeId && !nodeIds.has(nodeId)) {
     errors.push(`Unknown node reference "${nodeId}" at ${context}`);
@@ -155,6 +172,24 @@ function validateNodeReference(errors, nodeId, nodeIds, context) {
 function validateEdgeReference(errors, edgeId, edgeIds, context) {
   if (edgeId && !edgeIds.has(edgeId)) {
     errors.push(`Unknown edge reference "${edgeId}" at ${context}`);
+  }
+}
+
+function verifyDerivedFrom(errors, item, factIds, context, strict) {
+  if (!strict) {
+    return;
+  }
+
+  const refs = item?.derivedFrom;
+  if (!Array.isArray(refs) || refs.length === 0) {
+    errors.push(`${context} must include derivedFrom in strict mode`);
+    return;
+  }
+
+  for (const ref of refs) {
+    if (!factIds.has(ref)) {
+      errors.push(`${context} references missing fact "${ref}" in derivedFrom`);
+    }
   }
 }
 
@@ -254,9 +289,9 @@ function currentGitCommit(repoPath) {
   return result.stdout.trim();
 }
 
-function verifyEvidenceFreshness(errors, warnings, artifact, repoPath) {
+function verifyEvidenceFreshness(errors, warnings, artifact, repoPath, strict) {
   if (!repoPath) {
-    warnings.push('repository context not supplied; stale evidence checks limited to artifact structure');
+    addDiagnostic(strict, errors, warnings, 'repository context not supplied; stale evidence checks limited to artifact structure');
     return;
   }
 
@@ -266,11 +301,11 @@ function verifyEvidenceFreshness(errors, warnings, artifact, repoPath) {
   const usableContentHashCount = evidenceRecords.filter((item) => typeof item?.contentHash === 'string' && item.contentHash.startsWith('sha256:')).length;
 
   if (!metadataCommitIsVerifiable) {
-    warnings.push('metadata.commit is not a verifiable 40-character git hash');
+    addDiagnostic(strict, errors, warnings, 'metadata.commit is not a verifiable 40-character git hash');
   }
 
   if (evidenceRecords.length > 0 && usableContentHashCount === 0) {
-    warnings.push('no evidence records include contentHash; stale evidence checks cannot compare file contents');
+    addDiagnostic(strict, errors, warnings, 'no evidence records include contentHash; stale evidence checks cannot compare file contents');
   }
 
   if (/^[a-f0-9]{40}$/i.test(metadataCommit ?? '')) {
@@ -278,33 +313,47 @@ function verifyEvidenceFreshness(errors, warnings, artifact, repoPath) {
     if (currentCommit && currentCommit !== metadataCommit) {
       errors.push(`metadata.commit ${metadataCommit} does not match repository HEAD ${currentCommit}`);
     } else if (!currentCommit) {
-      warnings.push('metadata.commit could not be verified because repository HEAD is unavailable');
+      addDiagnostic(strict, errors, warnings, 'metadata.commit could not be verified because repository HEAD is unavailable');
     }
   }
 
   for (const [index, evidence] of evidenceRecords.entries()) {
-    if (!isObject(evidence) || typeof evidence.path !== 'string') {
+    if (!isObject(evidence)) {
+      continue;
+    }
+
+    const relativeContext = `evidence[${index}] ${evidence.id ?? evidence.path ?? '(unknown)'}`;
+    if (typeof evidence.path !== 'string') {
+      if (strict) {
+        errors.push(`${relativeContext} must include evidence.path in strict mode`);
+      }
       continue;
     }
 
     const evidencePath = path.resolve(repoPath, evidence.path);
-    const relativeContext = `evidence[${index}] ${evidence.id ?? evidence.path}`;
     if (!evidencePath.startsWith(`${repoPath}${path.sep}`) && evidencePath !== repoPath) {
       errors.push(`${relativeContext} path escapes repository context`);
       continue;
     }
 
-    if (!fs.existsSync(evidencePath)) {
-      warnings.push(`${relativeContext} path not found in repository context`);
-      continue;
+    const pathExists = fs.existsSync(evidencePath);
+    if (!pathExists) {
+      addDiagnostic(strict, errors, warnings, `${relativeContext} path not found in repository context`);
     }
 
     if (typeof evidence.contentHash !== 'string') {
+      if (strict) {
+        errors.push(`${relativeContext} must include sha256 contentHash in strict mode`);
+      }
       continue;
     }
 
     if (!evidence.contentHash.startsWith('sha256:')) {
-      warnings.push(`${relativeContext} contentHash uses unsupported format`);
+      addDiagnostic(strict, errors, warnings, `${relativeContext} contentHash uses unsupported format`);
+      continue;
+    }
+
+    if (!pathExists) {
       continue;
     }
 
@@ -315,12 +364,13 @@ function verifyEvidenceFreshness(errors, warnings, artifact, repoPath) {
   }
 }
 
-function verifyArtifact(artifact, repoPath) {
+function verifyArtifact(artifact, repoPath, strict = false) {
   const errors = [];
   const warnings = [];
   const evidence = asArray(artifact.evidence);
   const evidenceIds = new Set(evidence.map((item) => item?.id).filter(Boolean));
   const evidenceById = new Map(evidence.map((item) => [item?.id, item]));
+  const factIds = new Set(asArray(artifact.facts).map((item) => item?.id).filter(Boolean));
   const nodeIds = new Set(asArray(artifact.nodes).map((item) => item?.id).filter(Boolean));
   const edgeIds = new Set(asArray(artifact.edges).map((item) => item?.id).filter(Boolean));
 
@@ -334,12 +384,17 @@ function verifyArtifact(artifact, repoPath) {
       errors.push(`${context} uses placeholder evidence path "${item.path}"`);
     }
     if (typeof item?.reason === 'string' && inferencePattern.test(item.reason)) {
-      warnings.push(`${context} reason uses inference wording; verify the referenced source supports it`);
+      addDiagnostic(strict, errors, warnings, `${context} reason uses inference wording; verify the referenced source supports it`);
     }
+  }
+
+  for (const [index, fact] of asArray(artifact.facts).entries()) {
+    addEvidenceRefDiagnostics(errors, fact?.evidence, evidenceIds, `facts[${index}]`);
   }
 
   for (const [index, node] of asArray(artifact.nodes).entries()) {
     const context = `nodes[${index}]`;
+    verifyDerivedFrom(errors, node, factIds, context, strict);
     addEvidenceRefDiagnostics(errors, node?.evidence, evidenceIds, context);
     verifyHighConfidenceEvidence(errors, node, evidenceById, context);
     verifyClaim(errors, node, context, ['id', 'kind', 'path', 'symbol', 'evidence', 'confidence']);
@@ -349,6 +404,7 @@ function verifyArtifact(artifact, repoPath) {
     const context = `edges[${index}]`;
     validateNodeReference(errors, edge?.from, nodeIds, `${context}.from`);
     validateNodeReference(errors, edge?.to, nodeIds, `${context}.to`);
+    verifyDerivedFrom(errors, edge, factIds, context, strict);
     addEvidenceRefDiagnostics(errors, edge?.evidence, evidenceIds, context);
     verifyHighConfidenceEvidence(errors, edge, evidenceById, context);
     verifyRelationshipClaim(errors, edge, context, ['id', 'from', 'to', 'evidence', 'confidence']);
@@ -360,13 +416,14 @@ function verifyArtifact(artifact, repoPath) {
 
     const flowText = textFields(flow, ['name', 'summary', 'trigger']);
     if (inferencePattern.test(flowText)) {
-      warnings.push(`flows[${flowIndex}] uses inference wording; human review required`);
+      addDiagnostic(strict, errors, warnings, `flows[${flowIndex}] uses inference wording; human review required`);
     }
 
     for (const [stepIndex, step] of asArray(flow?.steps).entries()) {
       const context = `flows[${flowIndex}].steps[${stepIndex}]`;
       validateNodeReference(errors, step?.node, nodeIds, `${context}.node`);
       validateEdgeReference(errors, step?.edge, edgeIds, `${context}.edge`);
+      verifyDerivedFrom(errors, step, factIds, context, strict);
       addEvidenceRefDiagnostics(errors, step?.evidence, evidenceIds, context);
       verifyHighConfidenceEvidence(errors, step, evidenceById, context);
       verifyRelationshipClaim(errors, step, context, ['id', 'node', 'edge', 'evidence', 'confidence']);
@@ -382,18 +439,18 @@ function verifyArtifact(artifact, repoPath) {
     }
   }
 
-  verifyEvidenceFreshness(errors, warnings, artifact, repoPath);
+  verifyEvidenceFreshness(errors, warnings, artifact, repoPath, strict);
 
   return { errors, warnings };
 }
 
 function main() {
-  const { files, repoPath } = parseArgs(process.argv.slice(2));
+  const { files, repoPath, strict } = parseArgs(process.argv.slice(2));
   let failed = false;
 
   for (const file of files) {
     const artifact = readJson(file);
-    const { errors, warnings } = verifyArtifact(artifact, repoPath);
+    const { errors, warnings } = verifyArtifact(artifact, repoPath, strict);
 
     if (errors.length > 0) {
       failed = true;

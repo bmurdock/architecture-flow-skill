@@ -1,9 +1,11 @@
 #!/usr/bin/env node
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { scanSecrets } from './check-secrets.mjs';
+import { extractJsTsFacts } from './extract-js-ts-facts.mjs';
 
 const ignoredDirectories = new Set([
   '.git',
@@ -71,13 +73,22 @@ function classifyFile(relativePath) {
   return 'candidate';
 }
 
-function describeFile(repoPath, relativePath) {
-  const stat = fs.statSync(path.join(repoPath, relativePath));
-  return {
+function sha256File(filePath) {
+  return `sha256:${crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')}`;
+}
+
+function describeFile(repoPath, relativePath, options = {}) {
+  const absolutePath = path.join(repoPath, relativePath);
+  const stat = fs.statSync(absolutePath);
+  const description = {
     path: relativePath,
     kind: classifyFile(relativePath),
     sizeBytes: stat.size
   };
+  if (options.includeContentHash) {
+    description.contentHash = sha256File(absolutePath);
+  }
+  return description;
 }
 
 function walk(repoPath) {
@@ -85,7 +96,8 @@ function walk(repoPath) {
 
   function visit(directory) {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      if (entry.isDirectory() && ignoredDirectories.has(entry.name)) {
+      const isRootTmpDirectory = directory === repoPath && entry.name === 'tmp';
+      if (entry.isDirectory() && (isRootTmpDirectory || ignoredDirectories.has(entry.name))) {
         continue;
       }
 
@@ -386,12 +398,13 @@ export function scanRepository(targetPath) {
   const files = allFiles
     .map((filePath) => toPosixPath(path.relative(repoPath, filePath)))
     .filter((relativePath) => !redactedPaths.has(relativePath) && isCandidateFile(relativePath))
-    .map((relativePath) => describeFile(repoPath, relativePath))
+    .map((relativePath) => describeFile(repoPath, relativePath, { includeContentHash: true }))
     .sort((a, b) => a.path.localeCompare(b.path));
   const manifests = collectManifests(repoPath, allFiles.filter((filePath) => !redactedPaths.has(toPosixPath(path.relative(repoPath, filePath)))));
   const sourceFiles = files.filter((file) => sourceExtensions.has(path.extname(file.path)));
   const imports = sourceFiles.flatMap((file) => extractImports(repoPath, file)).sort((a, b) => `${a.path}:${a.source}`.localeCompare(`${b.path}:${b.source}`));
   const symbols = sourceFiles.flatMap((file) => extractSymbols(repoPath, file)).sort((a, b) => `${a.path}:${a.name}:${a.kind}`.localeCompare(`${b.path}:${b.name}:${b.kind}`));
+  const astExtraction = extractJsTsFacts(repoPath, sourceFiles);
   const entrypoints = collectEntrypoints(manifests);
 
   return {
@@ -407,8 +420,9 @@ export function scanRepository(targetPath) {
     imports,
     symbols,
     entrypoints,
+    facts: astExtraction.facts,
     redactions: secretReport.findings,
-    diagnostics: []
+    diagnostics: astExtraction.diagnostics
   };
 }
 

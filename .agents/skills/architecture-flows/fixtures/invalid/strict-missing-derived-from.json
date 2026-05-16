@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "0.1.0",
+  "metadata": {
+    "repository": "architecture-flow-skill",
+    "branch": "main",
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "generatedAt": "2026-05-14T12:00:00.000Z",
+    "generationMode": "codex-session",
+    "privacy": "local-only"
+  },
+  "evidence": [
+    {
+      "id": "ev:package.json",
+      "kind": "manifest",
+      "path": "package.json",
+      "language": "json",
+      "provenance": "filesystem",
+      "reason": "Manifests the package metadata and test script.",
+      "contentHash": "sha256:96384a339f9384d2e2d74012b143bb7a06a60fa2d35e211510b97790ffe87e4f"
+    }
+  ],
+  "facts": [
+    {
+      "id": "fact:package-manifest",
+      "kind": "manifest",
+      "path": "package.json",
+      "language": "json",
+      "provenance": "filesystem",
+      "evidence": ["ev:package.json"]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node:package",
+      "kind": "module",
+      "label": "Package manifest",
+      "derivedFrom": ["fact:missing"],
+      "evidence": ["ev:package.json"],
+      "confidence": {
+        "overall": "high"
+      }
+    }
+  ],
+  "edges": [],
+  "flows": [
+    {
+      "id": "flow:test-script",
+      "name": "Package test script",
+      "summary": "The package manifest defines the test command.",
+      "trigger": "npm test",
+      "entry": "node:package",
+      "steps": [
+        {
+          "id": "step:read-package",
+          "order": 1,
+          "node": "node:package",
+          "description": "Read package metadata.",
+          "evidence": ["ev:package.json"],
+          "confidence": {
+            "overall": "medium"
+          }
+        }
+      ]
+    }
+  ]
+}

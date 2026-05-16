@@ -39,6 +39,41 @@ describe('validate-flows.mjs', () => {
     assert.match(result.stderr, /Unknown node reference "node:missing"/);
   });
 
+  it('accepts fact provenance references from nodes, edges, and flow steps', () => {
+    const result = runValidator(fixture('valid/strict-facts-flow.json'));
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.match(result.stdout, /valid/i);
+  });
+
+  it('rejects duplicate fact ids', () => {
+    const result = runValidator(fixture('invalid/duplicate-fact-id.json'));
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Duplicate fact id "fact:server-entrypoint"/);
+  });
+
+  it('rejects derivedFrom references to missing facts', () => {
+    const result = runValidator(fixture('invalid/strict-missing-derived-from.json'));
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Unknown fact reference "fact:missing" at nodes\[0\]\.derivedFrom/);
+  });
+
+  it('rejects unsupported fact fields', () => {
+    const result = runValidator(fixture('invalid/unsupported-fact-field.json'));
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /facts\[0\]\.unsupportedFactField is not allowed/);
+  });
+
+  it('rejects fact evidence references to missing evidence', () => {
+    const result = runValidator(fixture('invalid/fact-missing-evidence.json'));
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Unknown evidence reference "ev:missing" at facts\[0\]\.evidence/);
+  });
+
   it('rejects flow steps that reference missing edges', () => {
     const result = runValidator(fixture('invalid/broken-step-edge.json'));
 

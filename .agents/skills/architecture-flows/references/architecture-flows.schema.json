@@ -60,6 +60,11 @@
       "type": "array",
       "items": { "$ref": "#/$defs/evidence" }
     },
+    "facts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/fact" },
+      "default": []
+    },
     "nodes": {
       "type": "array",
       "items": { "$ref": "#/$defs/node" }
@@ -118,6 +123,11 @@
         "kind": { "type": "string", "minLength": 1 },
         "from": { "type": "string", "minLength": 1 },
         "to": { "type": "string", "minLength": 1 },
+        "derivedFrom": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
         "evidence": {
           "type": "array",
           "minItems": 1,
@@ -140,14 +150,31 @@
         "provenance": { "type": "string", "minLength": 1 },
         "reason": { "type": "string", "minLength": 1 },
         "contentHash": { "type": "string" },
-        "location": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "startLine": { "type": "integer", "minimum": 1 },
-            "endLine": { "type": "integer", "minimum": 1 }
-          }
-        }
+        "location": { "$ref": "#/$defs/location" }
+      }
+    },
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "path", "provenance", "evidence"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": {
+          "type": "string",
+          "enum": ["import", "export", "symbol", "entrypoint", "manifest", "route", "config"]
+        },
+        "path": { "type": "string", "minLength": 1 },
+        "provenance": { "type": "string", "minLength": 1 },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "symbol": { "type": "string" },
+        "source": { "type": "string" },
+        "target": { "type": "string" },
+        "language": { "type": "string" },
+        "location": { "$ref": "#/$defs/location" }
       }
     },
     "flow": {
@@ -178,6 +205,11 @@
         "node": { "type": "string", "minLength": 1 },
         "edge": { "type": "string" },
         "description": { "type": "string", "minLength": 1 },
+        "derivedFrom": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
         "evidence": {
           "type": "array",
           "minItems": 1,
@@ -197,6 +229,11 @@
         "label": { "type": "string", "minLength": 1 },
         "path": { "type": "string" },
         "symbol": { "type": "string" },
+        "derivedFrom": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
         "evidence": {
           "type": "array",
           "minItems": 1,
@@ -204,6 +241,14 @@
         },
         "confidence": { "$ref": "#/$defs/confidence" },
         "uncertaintyReason": { "type": "string" }
+      }
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "startLine": { "type": "integer", "minimum": 1 },
+        "endLine": { "type": "integer", "minimum": 1 }
       }
     }
   }

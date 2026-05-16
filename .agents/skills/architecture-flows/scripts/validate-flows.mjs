@@ -193,6 +193,23 @@ function validateEvidenceReferences(errors, evidenceRefs, evidenceIds, context) 
   }
 }
 
+function validateFactReferences(errors, factRefs, factIds, context) {
+  if (factRefs === undefined) {
+    return;
+  }
+
+  if (!Array.isArray(factRefs) || factRefs.length === 0) {
+    errors.push(`${context}.derivedFrom must include at least one fact id when present`);
+    return;
+  }
+
+  for (const factId of factRefs) {
+    if (!factIds.has(factId)) {
+      errors.push(`Unknown fact reference "${factId}" at ${context}.derivedFrom`);
+    }
+  }
+}
+
 function validateNodeReference(errors, nodeId, nodeIds, context) {
   if (nodeId && !nodeIds.has(nodeId)) {
     errors.push(`Unknown node reference "${nodeId}" at ${context}`);
@@ -220,6 +237,7 @@ function validateArtifact(artifact) {
   const edges = requireArray(errors, artifact, 'edges', 'root');
   const flows = requireArray(errors, artifact, 'flows', 'root');
   const diagnostics = Array.isArray(artifact.diagnostics) ? artifact.diagnostics : [];
+  const facts = Array.isArray(artifact.facts) ? artifact.facts : [];
 
   evidence.forEach((item, index) => {
     addRequiredErrors(errors, item, requiredEvidenceFields, `evidence[${index}]`);
@@ -250,16 +268,23 @@ function validateArtifact(artifact) {
   const evidenceIds = collectIds(errors, evidence, 'evidence');
   const nodeIds = collectIds(errors, nodes, 'node');
   const edgeIds = collectIds(errors, edges, 'edge');
+  const factIds = collectIds(errors, facts, 'fact');
   collectIds(errors, flows, 'flow');
+
+  facts.forEach((fact, index) => {
+    validateEvidenceReferences(errors, fact?.evidence, evidenceIds, `facts[${index}]`);
+  });
 
   nodes.forEach((node, index) => {
     validateEvidenceReferences(errors, node?.evidence, evidenceIds, `nodes[${index}]`);
+    validateFactReferences(errors, node?.derivedFrom, factIds, `nodes[${index}]`);
   });
 
   edges.forEach((edge, index) => {
     validateNodeReference(errors, edge?.from, nodeIds, `edges[${index}].from`);
     validateNodeReference(errors, edge?.to, nodeIds, `edges[${index}].to`);
     validateEvidenceReferences(errors, edge?.evidence, evidenceIds, `edges[${index}]`);
+    validateFactReferences(errors, edge?.derivedFrom, factIds, `edges[${index}]`);
   });
 
   flows.forEach((flow, flowIndex) => {
@@ -270,6 +295,12 @@ function validateArtifact(artifact) {
       validateNodeReference(errors, step?.node, nodeIds, `flows[${flowIndex}].steps[${stepIndex}].node`);
       validateEdgeReference(errors, step?.edge, edgeIds, `flows[${flowIndex}].steps[${stepIndex}].edge`);
       validateEvidenceReferences(errors, step?.evidence, evidenceIds, `flows[${flowIndex}].steps[${stepIndex}]`);
+      validateFactReferences(
+        errors,
+        step?.derivedFrom,
+        factIds,
+        `flows[${flowIndex}].steps[${stepIndex}]`
+      );
     }
   });
 

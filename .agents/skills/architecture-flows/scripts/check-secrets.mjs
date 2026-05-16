@@ -80,7 +80,8 @@ function walk(rootPath) {
 
   function visit(directory) {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      if (entry.isDirectory() && ignoredDirectories.has(entry.name)) {
+      const isRootTmpDirectory = directory === rootPath && entry.name === 'tmp';
+      if (entry.isDirectory() && (isRootTmpDirectory || ignoredDirectories.has(entry.name))) {
         continue;
       }
 

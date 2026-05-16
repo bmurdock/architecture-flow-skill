@@ -7,8 +7,8 @@ The skill keeps `architecture-flows.json` as the source of truth, validates it a
 ## What is included
 
 - `.agents/skills/architecture-flows/SKILL.md`: Codex skill workflow and definition of done.
-- `.agents/skills/architecture-flows/scripts/scan-repo.mjs`: local repository scanner for manifests, candidate files, imports, symbols, entrypoints, git metadata, and redactions.
-- `.agents/skills/architecture-flows/scripts/normalize-evidence.mjs`: deterministic evidence normalization with stable IDs.
+- `.agents/skills/architecture-flows/scripts/scan-repo.mjs`: local repository scanner for manifests, candidate files, regex compatibility imports/symbols, parser-backed JS/TS facts, entrypoints, git metadata, content hashes, and redactions.
+- `.agents/skills/architecture-flows/scripts/normalize-evidence.mjs`: deterministic evidence normalization with stable IDs, fact IDs, and evidence links.
 - `.agents/skills/architecture-flows/scripts/validate-flows.mjs`: schema and reference validation for architecture flow artifacts.
 - `.agents/skills/architecture-flows/scripts/verify-flows.mjs`: semantic checks for evidence quality, overclaims, stale evidence, and confidence rules.
 - `.agents/skills/architecture-flows/scripts/plan-incremental.mjs`: regeneration planning for full, delta, and verify-only updates.
@@ -22,8 +22,9 @@ The skill keeps `architecture-flows.json` as the source of truth, validates it a
 3. Synthesize `architecture-flows.json` from evidence only, following `references/synthesis-instructions.md`.
 4. Validate the JSON artifact.
 5. Verify evidence-backed semantics, passing `--repo <path>` when the source repository is available.
-6. Render the HTML viewer after validation and verification pass.
-7. Review the result with `references/review-checklist.md`.
+6. Run strict verification for high-assurance or publishable artifacts so claims trace through `derivedFrom` facts and fresh evidence hashes.
+7. Render the HTML viewer after validation and verification pass.
+8. Review the result with `references/review-checklist.md`.
 
 Example commands:
 
@@ -32,18 +33,22 @@ node .agents/skills/architecture-flows/scripts/scan-repo.mjs /path/to/repo > sca
 node .agents/skills/architecture-flows/scripts/normalize-evidence.mjs scan.json > evidence.json
 node .agents/skills/architecture-flows/scripts/validate-flows.mjs docs/architecture/architecture-flows.json
 node .agents/skills/architecture-flows/scripts/verify-flows.mjs --repo /path/to/repo docs/architecture/architecture-flows.json
+node .agents/skills/architecture-flows/scripts/verify-flows.mjs --strict --repo /path/to/repo docs/architecture/architecture-flows.json
 node .agents/skills/architecture-flows/scripts/render-viewer.mjs docs/architecture/architecture-flows.json docs/architecture/architecture-flows.html
 ```
+
+Non-strict verification remains useful for drafts, legacy artifacts, or review passes where facts and `derivedFrom` provenance are still being filled in. Run strict verification before rendering or publishing an artifact when source repository context is available.
 
 ## Development
 
 Run the test suite with:
 
 ```bash
+npm ci
 npm test
 ```
 
-The repository is intentionally dependency-light and currently uses Node's built-in test runner.
+The repository uses Node's built-in test runner and a focused `ts-morph` dependency for parser-backed JavaScript and TypeScript fact extraction.
 
 ## Safety posture
 

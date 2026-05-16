@@ -95,6 +95,18 @@ function makeFixtureRepo(t) {
   );
   fs.writeFileSync(path.join(root, 'src/feature.js'), "export const feature = 'node';\n");
   fs.writeFileSync(path.join(root, 'src/feature-browser.js'), "export const feature = 'browser';\n");
+  fs.writeFileSync(
+    path.join(root, 'src/modern.tsx'),
+    [
+      "import React from 'react';",
+      "export { createServer as makeServer } from './server.js';",
+      'export default function App() { return null; }',
+      'export const routeHandler = async () => null;',
+      'export interface UserRecord { id: string }',
+      'export type UserId = string;',
+      'export enum Status { Ready = "ready" }'
+    ].join('\n')
+  );
   fs.writeFileSync(path.join(root, 'src/cli.cjs'), "module.exports = require('./cli.ts');\n");
   fs.writeFileSync(
     path.join(root, 'test/server.test.js'),
@@ -152,6 +164,7 @@ describe('Phase 2 evidence extraction scripts', () => {
         'src/feature-browser.js',
         'src/feature.js',
         'src/index.js',
+        'src/modern.tsx',
         'src/server.js',
         'test/server.test.js'
       ]
@@ -166,11 +179,14 @@ describe('Phase 2 evidence extraction scripts', () => {
         'src/feature-browser.js',
         'src/feature.js',
         'src/index.js',
+        'src/modern.tsx',
         'src/server.js',
         'test/server.test.js'
       ]
     );
     assert(scan.fileTree.every((file) => file.kind && Number.isInteger(file.sizeBytes)));
+    assert(scan.fileTree.every((file) => file.contentHash === undefined));
+    assert(scan.files.every((file) => typeof file.contentHash === 'string' && file.contentHash.startsWith('sha256:')));
     assert.equal(scan.fileTree.some((file) => file.path === '.env'), false);
     assert.deepEqual(
       scan.imports.map((item) => `${item.path}:${item.source}`).sort(),
@@ -178,6 +194,8 @@ describe('Phase 2 evidence extraction scripts', () => {
         'src/cli.cjs:./cli.ts',
         'src/cli.ts:./index.js',
         'src/index.js:./server.js',
+        'src/modern.tsx:./server.js',
+        'src/modern.tsx:react',
         'src/server.js:express',
         'test/server.test.js:../src/server.js'
       ]
@@ -191,10 +209,44 @@ describe('Phase 2 evidence extraction scripts', () => {
     assert(scan.entrypoints.some((entrypoint) => entrypoint.path === 'src/cli.cjs' && entrypoint.reason === 'package.exports[./cli]'));
     assert(scan.entrypoints.some((entrypoint) => entrypoint.path === 'src/feature.js' && entrypoint.reason === 'package.exports[./feature]'));
     assert(scan.entrypoints.some((entrypoint) => entrypoint.path === 'src/feature-browser.js' && entrypoint.reason === 'package.exports[./feature]'));
+    assert(scan.facts.some((fact) => fact.path === 'src/modern.tsx' && fact.kind === 'import' && fact.source === 'react'));
+    assert(scan.facts.some((fact) => fact.path === 'src/modern.tsx' && fact.kind === 'export' && fact.source === './server.js'));
+    for (const symbol of ['App', 'routeHandler', 'UserRecord', 'UserId', 'Status']) {
+      assert(scan.facts.some((fact) => fact.path === 'src/modern.tsx' && fact.kind === 'symbol' && fact.symbol === symbol), `${symbol} fact should be extracted`);
+    }
+    assert(scan.facts.every((fact) => fact.provenance === 'js-ts-ast'));
+    assert.equal(scan.diagnostics.some((diagnostic) => diagnostic.id.startsWith('js-ts-parse-fallback:')), false);
     assert(scan.redactions.some((redaction) => redaction.path === '.env' && redaction.reason === 'secret-bearing-file'));
     assert(scan.redactions.some((redaction) => redaction.path === 'config.json' && redaction.kind === 'secret-value'));
     assert.doesNotMatch(JSON.stringify(scan), /sk-test-1234567890abcdef/);
     assert.doesNotMatch(JSON.stringify(scan), /Ab3dE9fGh2JkL8mNo5PqR7sTu0VxYz12/);
+  });
+
+  it('ignores scratch tmp directories during repository scans', (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'architecture-scratch-ignore-'));
+    cleanupTempDir(t, root);
+    fs.mkdirSync(path.join(root, 'tmp/scanner-ignore'), { recursive: true });
+    fs.mkdirSync(path.join(root, 'src/tmp'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'package.json'), '{"type":"module"}\n');
+    fs.writeFileSync(path.join(root, 'tmp/scanner-ignore/ignored.js'), 'export function ignored() {}\n');
+    fs.writeFileSync(
+      path.join(root, 'src/tmp/hidden.js'),
+      [
+        "const apiKey = 'nested-source-secret';",
+        'export function hidden() {',
+        '  return apiKey;',
+        '}'
+      ].join('\n')
+    );
+
+    const scan = parseJson(runScript(scanRepo, root));
+
+    assert.doesNotMatch(JSON.stringify(scan), /tmp\/scanner-ignore/);
+    assert(scan.files.some((file) => file.path === 'src/tmp/hidden.js'));
+    assert(scan.fileTree.some((file) => file.path === 'src/tmp/hidden.js'));
+    assert(scan.symbols.some((symbol) => symbol.path === 'src/tmp/hidden.js' && symbol.name === 'hidden'));
+    assert(scan.facts.some((fact) => fact.path === 'src/tmp/hidden.js' && fact.kind === 'symbol' && fact.symbol === 'hidden'));
+    assert(scan.redactions.some((redaction) => redaction.path === 'src/tmp/hidden.js' && redaction.kind === 'secret-value'));
   });
 
   it('normalizes scanner output into a deterministic compact evidence bundle with stable ids and provenance', (t) => {
@@ -212,6 +264,7 @@ describe('Phase 2 evidence extraction scripts', () => {
       'imports',
       'symbols',
       'entrypoints',
+      'facts',
       'redactions',
       'diagnostics'
     ]);
@@ -221,6 +274,10 @@ describe('Phase 2 evidence extraction scripts', () => {
     assert(bundle.imports.some((item) => item.id.startsWith('import:src-server-js:express:')));
     assert(bundle.symbols.some((item) => item.id.startsWith('symbol:src-server-js:createServer:')));
     assert(bundle.entrypoints.some((item) => item.id.startsWith('entrypoint:src-index-js:package-main:package-json:')));
+    assert(bundle.files.every((file) => typeof file.contentHash === 'string' && file.contentHash.startsWith('sha256:')));
+    assert(bundle.fileTree.every((file) => file.contentHash === undefined));
+    assert(bundle.facts.some((fact) => fact.id.startsWith('fact:src-modern-tsx:symbol:App:')));
+    assert(bundle.facts.every((fact) => fact.evidence.length > 0));
     assert(bundle.files.every((file) => file.provenance?.scanner === 'scan-repo.mjs'));
     assert.deepEqual(
       bundle.files.map((file) => file.id),
@@ -229,6 +286,45 @@ describe('Phase 2 evidence extraction scripts', () => {
 
     const bundleAgain = parseJson(runScript(normalizeEvidence, scanFile));
     assert.deepEqual(bundle, bundleAgain);
+  });
+
+  it('reports parser fallback diagnostics for malformed JS/TS files', (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'architecture-malformed-source-'));
+    cleanupTempDir(t, root);
+    fs.mkdirSync(path.join(root, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'package.json'), '{"type":"module"}\n');
+    fs.writeFileSync(path.join(root, 'src/broken.ts'), 'export function broken( {\n');
+
+    const scan = parseJson(runScript(scanRepo, root));
+
+    assert(scan.diagnostics.some((diagnostic) => (
+      diagnostic.id === 'js-ts-parse-fallback:src/broken.ts'
+      && diagnostic.message === 'Parser extraction failed for src/broken.ts; regex fallback was used.'
+    )));
+  });
+
+  it('extracts local export declarations as export facts with source and target names', (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'architecture-local-export-'));
+    cleanupTempDir(t, root);
+    fs.mkdirSync(path.join(root, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'package.json'), '{"type":"module"}\n');
+    fs.writeFileSync(
+      path.join(root, 'src/local.ts'),
+      [
+        'const local = 1;',
+        'export { local as renamed };'
+      ].join('\n')
+    );
+
+    const scan = parseJson(runScript(scanRepo, root));
+
+    assert(scan.facts.some((fact) => (
+      fact.path === 'src/local.ts'
+      && fact.kind === 'export'
+      && fact.source === 'local'
+      && fact.target === 'renamed'
+      && fact.provenance === 'js-ts-ast'
+    )));
   });
 
   it('keeps redaction ids stable when nearby redactions are added', (t) => {

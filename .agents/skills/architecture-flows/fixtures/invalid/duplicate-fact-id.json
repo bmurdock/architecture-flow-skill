@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "0.1.0",
+  "metadata": {
+    "repository": "scryfall-mcp",
+    "branch": "main",
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "generatedAt": "2026-05-14T12:00:00.000Z",
+    "generationMode": "codex-session",
+    "privacy": "local-only"
+  },
+  "evidence": [
+    {
+      "id": "ev:src/server.ts#startServer",
+      "kind": "symbol",
+      "path": "src/server.ts",
+      "provenance": "typescript-ast",
+      "reason": "Defines the MCP server startup entrypoint."
+    }
+  ],
+  "facts": [
+    {
+      "id": "fact:server-entrypoint",
+      "kind": "entrypoint",
+      "path": "src/server.ts",
+      "provenance": "typescript-ast",
+      "evidence": ["ev:src/server.ts#startServer"]
+    },
+    {
+      "id": "fact:server-entrypoint",
+      "kind": "symbol",
+      "path": "src/server.ts",
+      "provenance": "typescript-ast",
+      "evidence": ["ev:src/server.ts#startServer"]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node:server",
+      "kind": "module",
+      "label": "MCP server",
+      "derivedFrom": ["fact:server-entrypoint"],
+      "evidence": ["ev:src/server.ts#startServer"],
+      "confidence": {
+        "overall": "high"
+      }
+    }
+  ],
+  "edges": [],
+  "flows": [
+    {
+      "id": "flow:startup",
+      "name": "Server startup",
+      "summary": "The server starts from the exported entrypoint.",
+      "trigger": "process start",
+      "entry": "node:server",
+      "steps": [
+        {
+          "id": "step:start-server",
+          "order": 1,
+          "node": "node:server",
+          "description": "Start the MCP server.",
+          "evidence": ["ev:src/server.ts#startServer"],
+          "confidence": {
+            "overall": "medium"
+          }
+        }
+      ]
+    }
+  ]
+}

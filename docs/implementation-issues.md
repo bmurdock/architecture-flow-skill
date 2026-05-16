@@ -4,8 +4,8 @@
 
 ### Open
 
-- Broader extractor coverage remains future work beyond the first JS/TS MVP.
-- The golden fixture intentionally carries a reviewed warning for `metadata.commit` because it is a committed local fixture rather than a real repository artifact.
+- Broader non-JS/TS extractor coverage remains future work beyond the hardened JS/TS MVP.
+- The legacy golden fixture intentionally carries a reviewed warning for `metadata.commit` because it is a committed local fixture rather than a real repository artifact; a separate strict golden fixture now covers warning-free strict verification.
 - Responses API orchestration remains intentionally deferred; current synthesis is Codex-session based.
 - Rich hosted publishing and multi-repository artifact publishing remain out of scope for the MVP.
 
@@ -16,3 +16,4 @@
 - Phase 4 viewer generation was added with validation gating, embedded JSON, flow highlighting, panels, and stale-output safety.
 - Phase 5 test, golden fixture, and CI coverage were added, including upload of local review artifacts.
 - Phase 6 incremental planning was added with `full`, `delta`, and `verify-only` modes, metadata planning, committed/dirty change detection, impacted subgraphs, and curated field policy.
+- Strict fact provenance, parser-backed JS/TS facts, evidence hashes, strict golden verification, and root-only scratch handling were added in the hardening branch.
